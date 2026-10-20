@@ -19,14 +19,13 @@ Custom ROM project: **Evolution X `bka` (Android 16, LineageOS 23.2 base)** with
 - CAF HALs (sm6375-6.1): [spring4ever](https://github.com/spring4ever)
 - Motorola hardware: [LineageOS/android_hardware_motorola](https://github.com/LineageOS/android_hardware_motorola)
 
-## Build without a PC (Crave, free for ROM devs)
-1. Apply for free build access at https://foss.crave.io (sign in with GitHub).
-2. On your phone, install **Termux** (from F-Droid), then install the Crave CLI and put your `crave.conf` from the Crave dashboard in Termux's home folder.
-3. Start a build:
-   ```bash
-   crave run --no-patch -- "curl -fsSL https://raw.githubusercontent.com/ffgamerganesh61-beep/evolution-x-/main/scripts/build.sh | bash"
-   ```
-4. Download the zip from `out/target/product/malmo/` with `crave pull`.
+## Build without a PC (Crave + GitHub Actions, all from your phone)
+The Crave CLI only runs on x86 computers, so Termux on a phone can't run it. A GitHub Actions workflow runs it for you instead.
+1. Apply for free ROM-builder access at https://foss.crave.io (sign in with GitHub) and wait for approval.
+2. On foss.crave.io, open **API Keys**, then download `crave.conf`. Open it and note `username` and the `Authorization` token.
+3. In this repo go to **Settings > Secrets and variables > Actions > New repository secret**. Add `CRAVE_USERNAME` and `CRAVE_TOKEN`.
+4. **Actions > Crave Build > Run workflow**, with MODE = `list`. The log shows Crave's project IDs. Note the Android 16 / LineageOS 23 one.
+5. Run it again with MODE = `build` and that PROJECT_ID. A finished zip gets published under **Releases** as a pre-release.
 
 ## Flashing (at your own risk)
 - Unlock the bootloader through Motorola's official unlock page (this wipes the phone).
