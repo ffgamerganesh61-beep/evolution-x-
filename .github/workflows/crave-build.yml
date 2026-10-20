@@ -1,0 +1,110 @@
+# Build Evolution X for Moto G85 (malmo) on foss.crave.io - start it from the GitHub app, no PC needed.
+# Needs repo secrets CRAVE_USERNAME and CRAVE_TOKEN (from crave.conf on foss.crave.io > API Keys).
+name: Crave Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      MODE:
+        description: "list = show Crave project IDs, build = build the ROM"
+        required: true
+        default: list
+        type: choice
+        options: [list, build]
+      PROJECT_ID:
+        description: "Crave project ID to build on (from a 'list' run, e.g. the LineageOS 23 / Android 16 one)"
+        required: false
+        default: ""
+      BUILD_VARIANT:
+        description: "Build type"
+        required: true
+        default: userdebug
+        type: choice
+        options: [userdebug, user, eng]
+      CLEAN:
+        description: "Start from a clean workspace?"
+        required: true
+        default: "no"
+        type: choice
+        options: ["no", "yes"]
+
+jobs:
+  crave:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Install crave and repo
+        run: |
+          mkdir -p ~/bin
+          cd ~/bin
+          curl -s https://raw.githubusercontent.com/accupara/crave/master/get_crave.sh | bash -s --
+          curl -s https://storage.googleapis.com/git-repo-downloads/repo -o repo
+          chmod a+x crave repo
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Write crave.conf
+        env:
+          CRAVE_USERNAME: ${{ secrets.CRAVE_USERNAME }}
+          CRAVE_TOKEN: ${{ secrets.CRAVE_TOKEN }}
+        run: |
+          if [ -z "$CRAVE_USERNAME" ] || [ -z "$CRAVE_TOKEN" ]; then
+            echo "::error::Add CRAVE_USERNAME and CRAVE_TOKEN in Settings > Secrets and variables > Actions"; exit 1
+          fi
+          mkdir -p work
+          jq -n --arg u "$CRAVE_USERNAME" --arg t "$CRAVE_TOKEN" \
+            '{username:$u, headers:{"Content-Type":"application/json", Authorization:$t, "User-Agent":"Crave"}, projects:[], server:"https://foss.crave.io/api"}' \
+            > work/crave.conf
+          cp work/crave.conf ~/crave.conf
+
+      - name: List Crave projects
+        if: inputs.MODE == 'list'
+        run: |
+          cd work
+          crave -c crave.conf list || crave -c crave.conf clone list
+
+      - name: Build Evolution X for malmo
+        if: inputs.MODE == 'build'
+        run: |
+          [ -n "${{ inputs.PROJECT_ID }}" ] || { echo "::error::Set PROJECT_ID (run MODE=list first)"; exit 1; }
+          cd work
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          repo init -u https://github.com/Evolution-X/manifest -b bka --git-lfs --depth=1
+          CLEANFLAG=""; [ "${{ inputs.CLEAN }}" = "yes" ] && CLEANFLAG="--clean"
+          crave -c crave.conf run --projectID "${{ inputs.PROJECT_ID }}" --no-patch $CLEANFLAG -- \
+            "export BUILD_VARIANT=${{ inputs.BUILD_VARIANT }} BUILD_USERNAME=${{ github.actor }} BUILD_HOSTNAME=crave; \
+             curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/build.sh | bash"
+
+      - name: Fetch the ROM zip
+        if: inputs.MODE == 'build' && success()
+        run: |
+          cd work
+          crave -c crave.conf pull 'out/target/product/malmo/EvolutionX-*.zip' || true
+          ls -la out/target/product/malmo/ 2>/dev/null || true
+
+      - name: Publish as a GitHub release
+        if: inputs.MODE == 'build' && success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd work
+          ZIP=$(ls out/target/product/malmo/EvolutionX-*.zip 2>/dev/null | head -1 || true)
+          [ -n "$ZIP" ] || { echo "No zip pulled; download it with crave pull instead."; exit 0; }
+          SIZE=$(stat -c%s "$ZIP")
+          if [ "$SIZE" -gt 2000000000 ]; then
+            echo "Zip is over GitHub's 2 GB release limit; splitting."
+            split -b 1900M "$ZIP" "$ZIP.part-"; FILES=$(ls "$ZIP".part-*)
+          else FILES="$ZIP"; fi
+          gh release create "malmo-${{ github.run_id }}" $FILES --repo "${{ github.repository }}" \
+            --title "Evolution X malmo (test build ${{ github.run_id }})" --prerelease \
+            --notes "Untested experimental build for Moto G85 5G (malmo). Flash at your own risk."
+
+      - name: Show error log
+        if: failure() && inputs.MODE == 'build'
+        run: |
+          cd work
+          crave -c crave.conf pull out/error.log && tail -n 200 out/error.log || true
+
+      - name: Stop crave if cancelled
+        if: cancelled()
+        run: cd work && crave -c crave.conf stop --all || true
