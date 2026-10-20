@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Local manifest: Evolution X (bka / Android 16, LineageOS 23.2 base)
+  Device: Motorola Moto G85 5G (malmo) - SM6375 (6.1 kernel)
+-->
+<manifest>
+  <remote name="gh" fetch="https://github.com/" />
+
+  <!-- Device tree, prebuilt kernel, proprietary vendor blobs -->
+  <project path="device/motorola/malmo" name="tmhakim/android_device_motorola_malmo" remote="gh" revision="rebase4" />
+  <project path="device/motorola/malmo-kernel" name="tmhakim-alt/kernel_prebuilt_motorola_malmo" remote="gh" revision="lineage-23.2" clone-depth="1" />
+  <project path="vendor/motorola/malmo" name="blair-development/vendor_motorola_malmo" remote="gh" revision="lineage-22.2" clone-depth="1" />
+
+  <!-- Motorola common hardware -->
+  <project path="hardware/motorola" name="LineageOS/android_hardware_motorola" remote="gh" revision="lineage-23.2" />
+
+  <!-- QCOM CAF HALs for sm6375 on the 6.1 kernel -->
+  <project path="hardware/qcom-caf/sm6375-6.1/display" name="spring4ever/android_hardware_qcom_display" remote="gh" revision="lineage-23.2-caf-sm6375-6.1" />
+  <project path="hardware/qcom-caf/sm6375-6.1/audio/primary-hal" name="spring4ever/android_hardware_qcom_audio-ar" remote="gh" revision="lineage-23.2-caf-sm6375-6.1" />
+  <project path="hardware/qcom-caf/sm6375-6.1/audio/agm" name="spring4ever/android_vendor_qcom_opensource_agm" remote="gh" revision="lineage-23.2-caf-sm6375-6.1" />
+  <project path="hardware/qcom-caf/sm6375-6.1/audio/pal" name="spring4ever/android_vendor_qcom_opensource_arpal-lx" remote="gh" revision="lineage-23.2-caf-sm6375-6.1" />
+  <project path="hardware/qcom-caf/sm6375-6.1/audio/graphservices" name="spring4ever/android_vendor_qcom_opensource_audioreach-graphservices" remote="gh" revision="lineage-23.2-caf-sm6375-6.1" />
+  <project path="hardware/qcom-caf/sm6375-6.1/dataipa" name="spring4ever/android_vendor_qcom_opensource_dataipa" remote="gh" revision="lineage-23.2-caf-sm6375-6.1" />
+  <project path="hardware/qcom-caf/sm6375-6.1/data-ipa-cfg-mgr" name="spring4ever/android_vendor_qcom_opensource_data-ipa-cfg-mgr" remote="gh" revision="lineage-23.2-caf-sm6375-6.1" />
+</manifest>
